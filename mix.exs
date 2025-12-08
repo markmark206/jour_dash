@@ -92,7 +92,13 @@ defmodule JourDash.MixProject do
         "esbuild jour_dash --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format --check-formatted",
+        "credo",
+        "test"
+      ]
     ]
   end
 end
