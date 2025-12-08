@@ -1,0 +1,82 @@
+name: "validate"
+
+on:
+  pull_request:
+    branches: []
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  build_docker_image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ""
+          build-args: |
+            COMMIT_SHA=${{ github.sha }}
+
+  validate_changes:
+    name: Run Linters and Tests
+    runs-on: ubuntu-latest
+    services:
+      pg:
+        image: postgres:16.4-alpine
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: "jour_dash_test"
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OTP and Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.19.3"
+          otp-version: "28.2"
+      - name: Manage dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix-
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Setup
+        env:
+          JOURNEY_BUILD_KEY: '${{ secrets.JOURNEY_BUILD_KEY }}'
+        run: mix setup
+      - name: Lint
+        env:
+          JOURNEY_BUILD_KEY: '${{ secrets.JOURNEY_BUILD_KEY }}'
+        run: mix credo && mix format --check-formatted
+      - name: Test
+        env:
+          JOURNEY_BUILD_KEY: '${{ secrets.JOURNEY_BUILD_KEY }}'
+        run: mix test
+
