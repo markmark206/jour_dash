@@ -17,7 +17,7 @@ defmodule JourDashWeb.Router do
   scope "/", JourDashWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", Live.Home.Index
   end
 
   # Other scopes may use custom stacks.

@@ -37,6 +37,8 @@ defmodule JourDash.Trip.Graph do
       name(),
       version(),
       [
+        compute(:created_at, [], fn _ -> {:ok, System.system_time(:second)} end),
+
         # Initial data elements of the delivery trip.
         input(:location_driver),
         input(:location_pickup),
@@ -71,7 +73,18 @@ defmodule JourDash.Trip.Graph do
               {:payment_collection, &provided?/1}
             ]
           ),
-          &Computations.current_activity_name/1
+          &Computations.current_activity_name/1,
+          f_on_save: fn trip_id, {:ok, new_activity} ->
+            Logger.debug("#{trip_id}: current_activity updated, new activity: #{new_activity}")
+
+            Phoenix.PubSub.broadcast(
+              JourDash.PubSub,
+              "current_activity_update_#{trip_id}",
+              {:activity_changed, trip_id, new_activity}
+            )
+
+            {:ok, "new activity notified"}
+          end
         ),
 
         # Collects payment upon delivery completion.
@@ -85,6 +98,24 @@ defmodule JourDash.Trip.Graph do
             ]
           ),
           &Computations.collect_payment/1
+        ),
+
+        # Record payment collection time.
+        compute(
+          :trip_completed_at,
+          [:payment_collection],
+          fn _ -> {:ok, System.system_time(:second)} end,
+          f_on_save: fn trip_id, {:ok, trip_completed_at} ->
+            Logger.debug("[#{trip_id}] trip_completed_at: #{trip_completed_at}")
+
+            Phoenix.PubSub.broadcast(
+              JourDash.PubSub,
+              "trip_completed",
+              {:trip_completed, trip_id}
+            )
+
+            {:ok, "trip_completed_at notification sent"}
+          end
         ),
 
         # Schedules a reminder for the customer to rate the trip if
@@ -120,8 +151,17 @@ defmodule JourDash.Trip.Graph do
               {:rating_reminder, &provided?/1}
             ]
           ),
-          f_on_save: fn trip_id, {:ok, [%{"node" => node, "value" => value} | _older_history]} ->
+          f_on_save: fn trip_id,
+                        {:ok, [%{"node" => node, "value" => value} | _older_history]} =
+                          updated_history ->
             Logger.info("[#{trip_id}]: trip_history updated: #{node}: #{inspect(value)}")
+
+            Phoenix.PubSub.broadcast(
+              JourDash.PubSub,
+              "history_update_#{trip_id}",
+              {:history_changed, trip_id, updated_history}
+            )
+
             {:ok, "trip_history_updated"}
           end
         ),

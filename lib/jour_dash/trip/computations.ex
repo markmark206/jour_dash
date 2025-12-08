@@ -85,8 +85,7 @@ defmodule JourDash.Trip.Computations do
     Logger.info("""
     Subject: #{trip_values.item_to_deliver}
     Dear Customer,
-    Let us know how we did!
-    https://jourdash.example.com/rate/#{trip_values.execution_id}.
+    Rate this delivery ('#{trip_values.execution_id}').
     Thank you,
     JourDash.
     """)

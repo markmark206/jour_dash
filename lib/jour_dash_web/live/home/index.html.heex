@@ -1,0 +1,57 @@
+<div>
+  <div class="mx-auto max-w-2xl space-y-2">
+    <div :if={@connected?} class="space-y-2">
+      <div id="title-id" class="mx-auto max-w-2xl flex justify-center mt-2 px-3">
+        <div class="text-xl text-center font-mono border-1 rounded-md mt-1 px-4 py-2 bg-base-100 w-full">
+          <div class="py-1">JourDash Delivery Service</div>
+        </div>
+      </div>
+      <Components.About.render />
+      <Components.Analytics.render
+        trip_count_in_progress={@trip_count_in_progress}
+        trip_count_completed={@trip_count_dropped_off + @trip_count_handed_off}
+        trip_count_dropped_off={@trip_count_dropped_off}
+        trip_count_handed_off={@trip_count_handed_off}
+        view_analytics={@view_analytics}
+        analytics={@analytics_text}
+      />
+      <% driver_available? = @trip_count_in_progress < drivers_available() %>
+
+      <div class="mx-auto max-w-2xl flex justify-center px-3">
+        <.button
+          id="start-a-new-trip-button-id"
+          disabled={not driver_available?}
+          phx-click="on_start_trip_button_click"
+          class="btn btn-lg btn-primary p-4 m-3 w-full"
+        >
+          <span class="text-lg">
+            <span>Start a New Delivery</span>
+          </span>
+          <span
+            :if={not driver_available?}
+            class=""
+          >
+            (no drivers available)
+          </span>
+        </.button>
+      </div>
+
+      <div :if={@newly_created_trip_id != nil} class="hidden mx-auto max-w-2xl px-3">
+        <div class="text-sm font-mono border-1 rounded-md p-3 bg-base-100">
+          New Trip Created: <span id="new-trip-created-id">{@newly_created_trip_id}</span>
+        </div>
+      </div>
+
+      <%= for trip <- @trips do %>
+        <div class={
+          if trip == @newly_created_trip_id, do: "border-l-5 border-r-5 border-info", else: ""
+        }>
+          {live_render(@socket, JourDashWeb.Live.Trip.Index,
+            id: "trip-lv-#{trip}",
+            session: %{"trip" => trip}
+          )}
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
