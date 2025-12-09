@@ -8,7 +8,6 @@ import Config
 config :jour_dash, JourDashWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json",
   check_origin: [
-    "https://jourdash-1074000674219.us-west3.run.app",
     "https://jourdash.gojourney.dev",
     "//localhost"
   ]
