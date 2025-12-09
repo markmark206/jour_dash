@@ -4,6 +4,8 @@ This application shows a basic food delivery service.
 
 The application uses Journey (a durable workflow engine) to define and execute its workflows.
 
+At the time of this writing, this application is hosted on [jourdash.gojourney.dev](https://jourdash.gojourney.dev/). You are welcome to head there, run a few deliveries, and check out the application's analytics.
+
 ## Setup
 
 Run `mix setup` to install and set up dependencies.
