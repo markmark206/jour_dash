@@ -30,6 +30,7 @@ defmodule JourDash.Trip.Graph do
   require Logger
 
   alias JourDash.Trip.Computations
+  alias JourDash.Trip.PubSubNotifications
 
   def name(), do: "Food Delivery Trip"
   def version(), do: "v1.0"
@@ -76,17 +77,7 @@ defmodule JourDash.Trip.Graph do
             ]
           ),
           &Computations.current_activity_name/1,
-          f_on_save: fn trip_id, {:ok, new_activity} ->
-            Logger.debug("#{trip_id}: current_activity updated, new activity: #{new_activity}")
-
-            Phoenix.PubSub.broadcast(
-              JourDash.PubSub,
-              "current_activity_update_#{trip_id}",
-              {:activity_changed, trip_id, new_activity}
-            )
-
-            {:ok, "new activity notified"}
-          end
+          f_on_save: &PubSubNotifications.broadcast_current_activity_update/2
         ),
 
         # Collects payment upon delivery completion.
@@ -107,17 +98,7 @@ defmodule JourDash.Trip.Graph do
           :trip_completed_at,
           [:payment_collection],
           fn _ -> {:ok, System.system_time(:second)} end,
-          f_on_save: fn trip_id, {:ok, trip_completed_at} ->
-            Logger.debug("[#{trip_id}] trip_completed_at: #{trip_completed_at}")
-
-            Phoenix.PubSub.broadcast(
-              JourDash.PubSub,
-              "trip_completed",
-              {:trip_completed, trip_id}
-            )
-
-            {:ok, "trip_completed_at notification sent"}
-          end
+          f_on_save: &PubSubNotifications.broadcast_trip_completed/2
         ),
 
         # Schedules a reminder for the customer to rate the trip if
@@ -153,19 +134,7 @@ defmodule JourDash.Trip.Graph do
               {:rating_reminder, &provided?/1}
             ]
           ),
-          f_on_save: fn trip_id,
-                        {:ok, [%{"node" => node, "value" => value} | _older_history]} =
-                          updated_history ->
-            Logger.info("[#{trip_id}]: trip_history updated: #{node}: #{inspect(value)}")
-
-            Phoenix.PubSub.broadcast(
-              JourDash.PubSub,
-              "history_update_#{trip_id}",
-              {:history_changed, trip_id, updated_history}
-            )
-
-            {:ok, "trip_history_updated"}
-          end
+          f_on_save: &PubSubNotifications.broadcast_trip_history_update/2
         ),
 
         # GPS simulation: providing `:location_driver` updates.
