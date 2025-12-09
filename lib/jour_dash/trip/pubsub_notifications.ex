@@ -1,7 +1,9 @@
 defmodule JourDash.Trip.PubSubNotifications do
   @moduledoc """
-  This module defines functions that generate PubSub notifications upon
-  updates to various graph nodes.
+  This module defines `f_on_save` functions that broadcast PubSub
+  notifications when the values of their graph nodes are updated.
+
+  Notifications are processed by LiveView components, which update the UI.
   """
 
   require Logger
